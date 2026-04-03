@@ -1,13 +1,26 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, Smile, X } from "lucide-react";
 import toast from "react-hot-toast";
+import EmojiPicker from "emoji-picker-react";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef(null);
+  const emojiPickerRef = useRef(null);
   const { sendMessage } = useChatStore();
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -49,8 +62,24 @@ const MessageInput = () => {
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         flexShrink: 0,
+        position: "relative",
+        zIndex: 50,
       }}
     >
+      {/* Emoji picker absolute positioned above */}
+      {showEmojiPicker && (
+        <div 
+          ref={emojiPickerRef}
+          style={{ position: "absolute", bottom: "100%", left: "1.25rem", marginBottom: "0.5rem", zIndex: 50 }}
+        >
+          <EmojiPicker 
+            onEmojiClick={(emojiData) => setText((prev) => prev + emojiData.emoji)} 
+            theme="auto"
+            emojiStyle="apple"
+          />
+        </div>
+      )}
+
       {/* Image preview */}
       {imagePreview && (
         <div
@@ -120,13 +149,14 @@ const MessageInput = () => {
           e.currentTarget.style.boxShadow = "none";
         }}
       >
-        {/* Emoji button (visual only) */}
+        {/* Emoji button */}
         <button
           type="button"
+          onClick={() => setShowEmojiPicker((prev) => !prev)}
           style={{
             background: "none",
             border: "none",
-            color: "var(--text-muted)",
+            color: showEmojiPicker ? "var(--accent-primary)" : "var(--text-muted)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
@@ -135,7 +165,7 @@ const MessageInput = () => {
             transition: "var(--transition)",
           }}
           onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = showEmojiPicker ? "var(--accent-primary)" : "var(--text-muted)"; }}
         >
           <Smile size={19} />
         </button>

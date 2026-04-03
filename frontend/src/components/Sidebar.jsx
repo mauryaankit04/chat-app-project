@@ -5,12 +5,18 @@ import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Search, Users } from "lucide-react";
 
 const Sidebar = () => {
-  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
+  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading, subscribeToMessages, unsubscribeFromMessages } = useChatStore();
   const { onlineUsers } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
   const [search, setSearch] = useState("");
 
   useEffect(() => { getUsers(); }, [getUsers]);
+
+  useEffect(() => {
+    subscribeToMessages();
+
+    return () => unsubscribeFromMessages();
+  }, [subscribeToMessages, unsubscribeFromMessages]);
 
   const filtered = users
     .filter((u) => showOnlineOnly ? onlineUsers.includes(u._id) : true)
@@ -144,7 +150,7 @@ const Sidebar = () => {
               background: showOnlineOnly
                 ? "var(--accent-primary)"
                 : "var(--border-color-hover)",
-              position: "relative",
+              position: "relative",   
               transition: "var(--transition)",
               cursor: "pointer",
               flexShrink: 0,
@@ -236,28 +242,38 @@ const Sidebar = () => {
               {/* Info */}
               <div
                 className="sidebar-label"
-                style={{ minWidth: 0, display: "none", flex: 1 }}
+                style={{ minWidth: 0, display: "none", flex: 1, flexDirection: "column" }}
               >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      color: "var(--text-primary)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {user.fullName}
+                  </div>
+                  {user.lastMessageAt && (
+                    <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", flexShrink: 0, marginLeft: "0.5rem" }}>
+                      {new Date(user.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
+                </div>
                 <div
                   style={{
-                    fontWeight: 600,
-                    fontSize: "0.875rem",
-                    color: "var(--text-primary)",
+                    fontSize: "0.75rem",
+                    color: !user.lastMessage && isOnline ? "var(--online-color)" : "var(--text-muted)",
+                    marginTop: 1,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {user.fullName}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.75rem",
-                    color: isOnline ? "var(--online-color)" : "var(--text-muted)",
-                    marginTop: 1,
-                  }}
-                >
-                  {isOnline ? "● Online" : "○ Offline"}
+                  {user.lastMessage?.text || (isOnline ? "● Online" : "○ Offline")}
                 </div>
               </div>
             </button>
@@ -280,7 +296,7 @@ const Sidebar = () => {
       </div>
 
       <style>{`
-        @media (min-width: 1024px) {
+        @media (min-width: 800px) {
           .sidebar-aside { width: 280px !important; }
           .sidebar-label { display: flex !important; }
         }
